@@ -1,9 +1,11 @@
+// comando para compilar: gcc main.c -o main mtwister/libmtwister.a -lcrypto
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "openssl/crypto.h"
 #include "openssl/sha.h"
-#include "mtwister.h"
+#include "mtwister/mtwister.h"
 
 // estruturas de dados
 typedef struct BlocoNaoMinerado{
@@ -46,9 +48,9 @@ int main(){
 	// pronto, minerado!
 	// ja da pra copiar esse dados para o bloco generis
 	blocoGenesis.bloco = aux;
-	strcpy(blocoGenesis.hash, hash);
+	memcpy(blocoGenesis.hash, hash, SHA256_DIGEST_LENGTH);
 	
-	printf("Sucesso!\nNonce: %u\nMinerador: %u\n", blocoGenesis.nonce, (unsigned int)blocoGenesis.bloco.data[183]);
+	printf("Sucesso!\nNonce: %u\nMinerador: %u\n", blocoGenesis.bloco.nonce, (unsigned int)blocoGenesis.bloco.data[183]);
 	printHash(blocoGenesis.hash, SHA256_DIGEST_LENGTH);
 	
 	return 0;
