@@ -29,13 +29,13 @@ typedef struct TNo {
 // funcoes e procedimentos
 void printHash(unsigned char hash[], int length);
 void inicializaBloco(BlocoNaoMinerado* bloco, unsigned char hashAnterior[SHA256_DIGEST_LENGTH]);
-void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, MTRand *gerador);
+void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *bus, MTRand *gerador);
 void removeLista(TNo **lista, unsigned short k);
 void insereLista(TNo **lista, unsigned short k);
 int contaLista(TNo *lista);
 void printVetor(unsigned char vetor[], int length);
 unsigned char geraOrigem(unsigned int *carteira, TNo *usuariosComBitcoins, MTRand *gerador);
-int busca(TNo *usuariosComBitcoins, int *indice);
+int busca(TNo *usuariosComBitcoins, int indice);
 // void escreveArquivo(BlocoMinerado *blocosMinerados);
 
 int main(){
@@ -164,7 +164,7 @@ void removeLista(TNo **lista, unsigned short k){
         free(aux);
     }
     else{
-        remover(&((*lista)->prox), k);
+        removeLista(&((*lista)->prox), k);
     }
 }
 
@@ -205,7 +205,7 @@ void printVetor(unsigned char vetor[], int length) {
 	printf("\n");
 }
 
-int busca(TNo *usuariosComBitcoins, int *indice) {
+int busca(TNo *usuariosComBitcoins, int indice) {
 	while(usuariosComBitcoins) {
 		if(usuariosComBitcoins->indice == indice) return 1;
 		usuariosComBitcoins = usuariosComBitcoins->prox;
