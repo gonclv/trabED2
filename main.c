@@ -227,12 +227,10 @@ void atualizaLista(TNo **lista, unsigned int carteira[], int length){
 			if(carteira[i] > 0){
 				// se nao estiver na lista, adiciona
 				if(!busca(*lista, i)){
-					printf("inserindo o %d\n", i);
 					insereLista(lista, i);
 				}
 			} else{
 				if(busca(*lista, i)){
-					printf("removendo o %d\n", i);
 					removeLista(lista, i);
 				}
 			}
