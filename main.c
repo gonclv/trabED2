@@ -29,7 +29,7 @@ typedef struct TNo {
 // funcoes e procedimentos
 void printHash(unsigned char hash[], int length);
 void inicializaBloco(BlocoNaoMinerado* bloco, unsigned char hashAnterior[SHA256_DIGEST_LENGTH]);
-void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, MTRand *gerador, TNo **usuariosComBitcoins);
+void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, MTRand *gerador);
 void removeLista(TNo **lista, unsigned short k);
 void insereLista(TNo **lista, unsigned short k);
 int contaLista(TNo *lista);
@@ -53,7 +53,7 @@ int main(){
 	if(!pArquivo) exit(1);
 
 	// criando bloco genesis
-	gerarBlocoGenesis(blocosMinerados, carteira, &gerador, &usuariosComBitcoins);
+	gerarBlocoGenesis(blocosMinerados, carteira, &gerador);
 	atualizaLista(&usuariosComBitcoins, carteira, 256);
 	
 	// gerando demais 15 blocos
@@ -166,7 +166,7 @@ void removeLista(TNo **lista, unsigned short k){
     }
 }
 
-void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, MTRand *gerador, TNo **usuariosComBitcoins)
+void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, MTRand *gerador)
 {
     BlocoNaoMinerado blocoAux;
 	BlocoMinerado blocoGenesis;
@@ -179,7 +179,6 @@ void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, M
 	strncpy(blocoAux.data, temp, strlen(temp));  //adiciona a string acima no campo data da struct
 	blocoAux.data[183] = genRandLong(gerador) % 256; // minerador eh aleatorio 
 	carteira[blocoAux.data[183]] = 50;
-	insereLista(usuariosComBitcoins, blocoAux.data[183]);
 
 	// processo de mineracao de fato
 	unsigned char hashGerado[SHA256_DIGEST_LENGTH];
@@ -194,7 +193,6 @@ void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, M
 
 	// colocando no vetor
 	blocoMinerados[0] = blocoGenesis;
-	insereLista(usuariosComBitcoins, blocoGenesis.bloco.data[183]);
 }
 
 void printVetor(unsigned char vetor[], int length) {
