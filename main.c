@@ -78,6 +78,7 @@ int main(){
 
 		//endereço do minerador (aleatório)
 		blocoAux.data[183] = genRandLong(&gerador) % 256;
+		carteira[blocoAux.data[183]] = carteira[blocoAux.data[183]] + 50;
 		
 		// processo de mineracao de fato
 		unsigned char hashGerado[SHA256_DIGEST_LENGTH];
@@ -176,7 +177,7 @@ void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, M
 	char temp[] = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
 	strncpy(blocoAux.data, temp, strlen(temp));  //adiciona a string acima no campo data da struct
 	blocoAux.data[183] = genRandLong(gerador) % 256; // minerador eh aleatorio 
-	carteira[blocoAux.data[183]] = carteira[blocoAux.data[183]] + 50;
+	carteira[blocoAux.data[183]] = 50;
 	insereLista(usuariosComBitcoins, blocoAux.data[183]);
 
 	// processo de mineracao de fato
