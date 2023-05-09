@@ -215,7 +215,9 @@ int busca(TNo *usuariosComBitcoins, int indice) {
 
 
 unsigned char geraOrigem(unsigned int *carteira, TNo *usuariosComBitcoins, MTRand *gerador) {
-	int numeroGerado = genRandLong(gerador) % contaLista(usuariosComBitcoins);
+	int quantidadeLista = contaLista(usuariosComBitcoins)
+	if(!quantidadeLista) return usuariosComBitcoins->indice;
+	int numeroGerado = genRandLong(gerador) % quantidadeLista;
 	while(numeroGerado--)
 		usuariosComBitcoins = usuariosComBitcoins->prox;
 	return usuariosComBitcoins->indice;
