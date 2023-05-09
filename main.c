@@ -126,7 +126,7 @@ void printHash(unsigned char hash[], int length){
 
 void inicializaBloco(BlocoNaoMinerado* bloco, unsigned char hashAnterior[SHA256_DIGEST_LENGTH]){
 	// preenchendo dados básicos
-	static int numero = 0;
+	static int numero = 1;
 	bloco->numero = numero;
 	numero++;
 	bloco->nonce = -1; // nonce inicia com -1 pra facilitar a mineracao
@@ -202,7 +202,7 @@ void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, M
 void printVetor(unsigned char vetor[], int length) {
 	int i;
 	for(i=0; i<length; i++){
-		printf("%c ", vetor[i]);
+		printf("%d ", vetor[i]);
 	}
 	printf("\n");
 }
