@@ -34,7 +34,7 @@ void removeLista(TNo **lista, unsigned short k);
 void insereLista(TNo **lista, unsigned short k);
 int contaLista(TNo *lista);
 void printVetor(unsigned char vetor[], int length);
-unsigned char geraOrigem(unsigned char *carteira, TNo *usuariosComBitcoins, MTRand *gerador);
+unsigned char geraOrigem(unsigned int *carteira, TNo *usuariosComBitcoins, MTRand *gerador);
 int busca(TNo *usuariosComBitcoins, int indice);
 void atualizaLista(TNo **lista, unsigned int carteira[], int length);
 // void escreveArquivo(BlocoMinerado *blocosMinerados);
