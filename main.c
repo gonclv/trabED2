@@ -29,7 +29,7 @@ typedef struct TNo {
 // funcoes e procedimentos
 void printHash(unsigned char hash[], int length);
 void inicializaBloco(BlocoNaoMinerado* bloco, unsigned char hashAnterior[SHA256_DIGEST_LENGTH]);
-void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *bus, MTRand *gerador);
+void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, MTRand *gerador, TNo **usuariosComBitcoins);
 void removeLista(TNo **lista, unsigned short k);
 void insereLista(TNo **lista, unsigned short k);
 int contaLista(TNo *lista);
@@ -51,7 +51,7 @@ int main(){
 	if(!pArquivo) exit(1);
 
 	// criando bloco genesis
-	gerarBlocoGenesis(blocosMinerados, carteira, &gerador);
+	gerarBlocoGenesis(blocosMinerados, carteira, &gerador, &usuariosComBitcoins);
 	
 	// gerando demais 15 blocos
 	// criando blocos temporarios p/ ajudar na mineracao 
@@ -168,7 +168,7 @@ void removeLista(TNo **lista, unsigned short k){
     }
 }
 
-void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, MTRand *gerador)
+void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, MTRand *gerador, TNo **usuariosComBitcoins)
 {
     BlocoNaoMinerado blocoAux;
 	BlocoMinerado blocoGenesis;
@@ -181,6 +181,7 @@ void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, M
 	strncpy(blocoAux.data, temp, strlen(temp));  //adiciona a string acima no campo data da struct
 	blocoAux.data[183] = genRandLong(gerador) % 256; // minerador eh aleatorio 
 	carteira[blocoAux.data[183]] = carteira[blocoAux.data[183]] + 50;
+	insereLista(usuariosComBitcoins, blocoAux.data[183]);
 
 	// processo de mineracao de fato
 	unsigned char hashGerado[SHA256_DIGEST_LENGTH];
@@ -195,6 +196,7 @@ void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, M
 
 	// colocando no vetor
 	blocoMinerados[0] = blocoGenesis;
+	insereLista(usuariosComBitcoins, blocoGenesis.bloco.data[183]);
 }
 
 void printVetor(unsigned char vetor[], int length) {
@@ -216,7 +218,7 @@ int busca(TNo *usuariosComBitcoins, int indice) {
 
 unsigned char geraOrigem(unsigned int *carteira, TNo *usuariosComBitcoins, MTRand *gerador) {
 	int quantidadeLista = contaLista(usuariosComBitcoins);
-	if(!quantidadeLista) return usuariosComBitcoins->indice;
+	if(!quantidadeLista) return -1;
 	int numeroGerado = genRandLong(gerador) % quantidadeLista;
 	while(numeroGerado--)
 		usuariosComBitcoins = usuariosComBitcoins->prox;
