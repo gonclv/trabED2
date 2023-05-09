@@ -45,7 +45,8 @@ int main(){
 	TNo *usuariosComBitcoins = NULL;
 
 	// carteira com todos os endereços de usuários
-	unsigned int carteira[256] = {0};
+	unsigned int carteira[256];// = {0};
+	memset(carteira, 0, 256); 
 	// vetor para armazenar blocos minerados
 	BlocoMinerado blocosMinerados[16];
 	FILE *pArquivo = fopen("blockchain.bin", "w+");
@@ -227,11 +228,15 @@ void atualizaLista(TNo **lista, unsigned int carteira[], int length){
 			// quem tem saldo positivo, deve permanecer na lista
 			if(carteira[i] > 0){
 				// se nao estiver na lista, adiciona
-				if(!busca(*lista, i))
+				if(!busca(*lista, i)){
+					printf("inserindo o %d\n", i);
 					insereLista(lista, i);
+				}
 			} else{
-				if(busca(*lista, i))
+				if(busca(*lista, i)){
+					printf("removendo o %d\n", i);
 					removeLista(lista, i);
+				}
 			}
 	}
 }
