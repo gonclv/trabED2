@@ -53,7 +53,7 @@ int main(){
 
 	// criando bloco genesis
 	gerarBlocoGenesis(blocosMinerados, carteira, &gerador, &usuariosComBitcoins);
-	atualizaLista(&usuariosComBitcoins, carteira, SHA256_DIGEST_LENGTH);
+	atualizaLista(&usuariosComBitcoins, carteira, 256);
 	
 	// gerando demais 15 blocos
 	// criando blocos temporarios p/ ajudar na mineracao 
@@ -93,7 +93,7 @@ int main(){
 
 		// colocando no vetor
 		blocosMinerados[i-1] = blocoTerminado;
-		atualizaLista(&usuariosComBitcoins, carteira, SHA256_DIGEST_LENGTH);
+		atualizaLista(&usuariosComBitcoins, carteira, 256);
 	}
 
 	// exibindo os 16 blocos minerados
