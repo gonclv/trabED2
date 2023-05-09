@@ -36,7 +36,7 @@ int contaLista(TNo *lista);
 void printVetor(unsigned char vetor[], int length);
 unsigned char geraOrigem(unsigned char *carteira, TNo *usuariosComBitcoins, MTRand *gerador);
 int busca(TNo *usuariosComBitcoins, int indice);
-void atualizaLista(TNo **lista, unsigned char carteira[], int length);
+void atualizaLista(TNo **lista, unsigned int carteira[], int length);
 // void escreveArquivo(BlocoMinerado *blocosMinerados);
 
 int main(){
@@ -212,7 +212,7 @@ int busca(TNo *usuariosComBitcoins, int indice) {
 }
 
 
-unsigned char geraOrigem(unsigned char *carteira, TNo *usuariosComBitcoins, MTRand *gerador) {
+unsigned char geraOrigem(unsigned int *carteira, TNo *usuariosComBitcoins, MTRand *gerador) {
 	int quantidadeLista = contaLista(usuariosComBitcoins);
 	if(!quantidadeLista) return -1;
 	int numeroGerado = genRandLong(gerador) % quantidadeLista;
@@ -221,7 +221,7 @@ unsigned char geraOrigem(unsigned char *carteira, TNo *usuariosComBitcoins, MTRa
 	return usuariosComBitcoins->indice;
 }
 
-void atualizaLista(TNo **lista, unsigned char carteira[], int length){
+void atualizaLista(TNo **lista, unsigned int carteira[], int length){
 	for(int i=0; i<length; i++){
 			// quem tem saldo positivo, deve permanecer na lista
 			if(carteira[i] > 0){
