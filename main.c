@@ -9,7 +9,7 @@
 
 // estruturas de dados
 typedef struct BlocoNaoMinerado{
-	unsigned short numero;
+	unsigned int numero;
 	unsigned int nonce;
 	unsigned char data[184];
 	unsigned char hashAnterior[SHA256_DIGEST_LENGTH];
@@ -36,7 +36,7 @@ int contaLista(TNo *lista);
 void printVetor(unsigned char vetor[], int length);
 unsigned char geraOrigem(unsigned int *carteira, TNo *usuariosComBitcoins, MTRand *gerador);
 int busca(TNo *usuariosComBitcoins, int indice);
-void atualizaLista(TNo **lista, unsigned int carteira[], int length);
+void atualizaLista(TNo **lista, unsigned int carteira[]);
 // void escreveArquivo(BlocoMinerado *blocosMinerados);
 
 int main(){
@@ -45,8 +45,7 @@ int main(){
 	TNo *usuariosComBitcoins = NULL;
 
 	// carteira com todos os endereços de usuários
-	unsigned int carteira[256];// = {0};
-	memset(carteira, 0, 256); 
+	unsigned int carteira[256] = {0};
 	// vetor para armazenar blocos minerados
 	BlocoMinerado blocosMinerados[16];
 	FILE *pArquivo = fopen("blockchain.bin", "w+");
@@ -54,7 +53,7 @@ int main(){
 
 	// criando bloco genesis
 	gerarBlocoGenesis(blocosMinerados, carteira, &gerador);
-	atualizaLista(&usuariosComBitcoins, carteira, 256);
+	atualizaLista(&usuariosComBitcoins, carteira);
 	
 	// gerando demais 15 blocos
 	// criando blocos temporarios p/ ajudar na mineracao 
@@ -94,7 +93,7 @@ int main(){
 
 		// colocando no vetor
 		blocosMinerados[i-1] = blocoTerminado;
-		atualizaLista(&usuariosComBitcoins, carteira, 256);
+		atualizaLista(&usuariosComBitcoins, carteira);
 	}
 
 	// exibindo os 16 blocos minerados
@@ -128,8 +127,11 @@ void inicializaBloco(BlocoNaoMinerado* bloco, unsigned char hashAnterior[SHA256_
 	bloco->numero = numero;
 	numero++;
 	bloco->nonce = -1; // nonce inicia com -1 pra facilitar a mineracao
-	// zerando os campos data e hashAnterior
-	memset(bloco->data, 0, 184); 
+	// zerando campo data
+	for(int i=0; i<184; i++){
+		bloco->data[i] = 0;
+	}
+	// copiando hashAnterior
 	memcpy(bloco->hashAnterior, hashAnterior, SHA256_DIGEST_LENGTH);
 }
 
@@ -215,14 +217,18 @@ int busca(TNo *usuariosComBitcoins, int indice) {
 unsigned char geraOrigem(unsigned int *carteira, TNo *usuariosComBitcoins, MTRand *gerador) {
 	int quantidadeLista = contaLista(usuariosComBitcoins);
 	if(!quantidadeLista) return -1;
+	// se tiver apenas um elemento na lista, retorna ele
+	if(quantidadeLista == 1) return usuariosComBitcoins->indice;
+
+	// senao, sorteia
 	int numeroGerado = genRandLong(gerador) % quantidadeLista ;
 	while(numeroGerado--)
 		usuariosComBitcoins = usuariosComBitcoins->prox;
 	return usuariosComBitcoins->indice;
 }
 
-void atualizaLista(TNo **lista, unsigned int carteira[], int length){
-	for(int i=0; i<length; i++){
+void atualizaLista(TNo **lista, unsigned int carteira[]){
+	for(int i=0; i<256; i++){
 			// quem tem saldo positivo, deve permanecer na lista
 			if(carteira[i] > 0){
 				// se nao estiver na lista, adiciona
