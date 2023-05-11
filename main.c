@@ -37,7 +37,7 @@ void printVetor(unsigned char vetor[], int length);
 unsigned char geraOrigem(unsigned int *carteira, TNo *usuariosComBitcoins, MTRand *gerador);
 int busca(TNo *usuariosComBitcoins, int indice);
 void atualizaLista(TNo **lista, unsigned int carteira[]);
-void escreveArquivo(FILE *arquivo, TNo* dados);
+void escreveArquivo(FILE *arquivo, BlocoMinerado* dados);
 
 int main(){
 	// << PRINCIPAIS VARIAVEIS >>:
@@ -67,7 +67,7 @@ int main(){
 	int index = 1; // auxilia na gravacao dos blocos no vetor
 	unsigned char hashDoAnterior[SHA256_DIGEST_LENGTH];
 	// copiando hash do genesis
-	memcpy(hashDoAnterior, blocosMinerados[0]->hash, SHA256_DIGEST_LENGTH);
+	memcpy(hashDoAnterior, blocosMinerados[0].hash, SHA256_DIGEST_LENGTH);
 
 	for(; contadorBlocos <= 64; contadorBlocos++){
 		// primeiro iniciamos um novo bloco, enviando o hash do anterior
@@ -264,6 +264,6 @@ void atualizaLista(TNo **lista, unsigned int carteira[]){
 	}
 }
 
-void escreveArquivo(FILE *arquivo, TNo* dados){
+void escreveArquivo(FILE *arquivo, BlocoMinerado* dados){
 	fwrite(dados, sizeof(BlocoMinerado), 16, arquivo);
 }
