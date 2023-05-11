@@ -7,7 +7,7 @@
 #include "openssl/sha.h"
 #include "mtwister/mtwister.h"
 
-// estruturas de dados
+// << ESTRUTURAS DE DADOS UTILIZADAS: >>
 typedef struct BlocoNaoMinerado{
 	unsigned int numero;
 	unsigned int nonce;
@@ -26,7 +26,8 @@ typedef struct TNo {
 	struct TNo *prox;
 } TNo;
 
-// funcoes e procedimentos
+
+// << FUNCOES E PROCEDIMENTOS >>
 void printHash(unsigned char hash[], int length);
 void inicializaBloco(BlocoNaoMinerado* bloco, unsigned char hashAnterior[SHA256_DIGEST_LENGTH]);
 void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, MTRand *gerador);
@@ -39,8 +40,9 @@ int busca(TNo *usuariosComBitcoins, int indice);
 void atualizaLista(TNo **lista, unsigned int carteira[]);
 void escreveArquivo(FILE *arquivo, BlocoMinerado* dados);
 
+
 int main(){
-	// << PRINCIPAIS VARIAVEIS >>:
+	// << PRINCIPAIS VARIAVEIS >>
 
 	// variavel para gerar numeros aleatorios
 	MTRand gerador = seedRand(1234567);
@@ -58,7 +60,7 @@ int main(){
 
 	// criando bloco genesis
 	gerarBlocoGenesis(blocosMinerados, carteira, &gerador);
-	// apos cada alteracao na carteira, alteramos também a lista
+	// apos cada alteracao na carteira, alteramos tambem a lista
 	atualizaLista(&usuariosComBitcoins, carteira);
 
 	// VARIAVEIS AUXILIARES:
@@ -117,7 +119,7 @@ int main(){
 
 
 
-	// exibindo os 16 blocos minerados
+	// exibindo os 16 ultimos blocos minerados
 	for(int i=0; i<16; i++){
 		printf("Número do bloco: %d\n", blocosMinerados[i].bloco.numero);
 		printf("Nonce: %d\n", blocosMinerados[i].bloco.nonce);
@@ -129,11 +131,12 @@ int main(){
 		printHash(blocosMinerados[i].hash, SHA256_DIGEST_LENGTH);
 		printf("\n");
 	}
+
 	fclose(pArquivo);
 	return 0;
 }
 
-
+// funcao que exibe na tela o codigo hash em hexadecimal
 void printHash(unsigned char hash[], int length){
 	int i;
 	for(i=0; i<length; i++){
@@ -142,6 +145,16 @@ void printHash(unsigned char hash[], int length){
 	printf("\n");
 }
 
+// funcao que exibe na tela o conteudo de um vetor
+void printVetor(unsigned char vetor[], int length) {
+	int i;
+	for(i=0; i<length; i++){
+		printf("%d ", vetor[i]);
+	}
+	printf("\n");
+}
+
+// funcao que inicializa um bloco com valores iniciais, alem de copiar nesse bloco o hash do anterior
 void inicializaBloco(BlocoNaoMinerado* bloco, unsigned char hashAnterior[SHA256_DIGEST_LENGTH]){
 	// preenchendo dados básicos
 	static int numero = 1;
@@ -156,6 +169,7 @@ void inicializaBloco(BlocoNaoMinerado* bloco, unsigned char hashAnterior[SHA256_
 	memcpy(bloco->hashAnterior, hashAnterior, SHA256_DIGEST_LENGTH);
 }
 
+// funcao que insere um usuario(endereco da carteira) na lista
 void insereLista(TNo **lista, unsigned short k){
     // insere no inicio
 	TNo *novo = (TNo*) malloc(sizeof(TNo));
@@ -167,12 +181,14 @@ void insereLista(TNo **lista, unsigned short k){
 	*lista = novo;
 }
 
+// funcao que retorna o numero de elemento na lista
 int contaLista(TNo *lista){
 	if(!lista) return 0;
 	else 
 		return 1 + contaLista(lista->prox);
 }
 
+// funcao que remove um determinado usuario(endereco da carteira) da lista
 void removeLista(TNo **lista, unsigned short k){
     // caso base: se a lista for vazia, ou se ponteiro for nulo
     if(!*lista)
@@ -189,6 +205,19 @@ void removeLista(TNo **lista, unsigned short k){
     }
 }
 
+// funcao que verifica se um determinado usuario(endereco da carteira) esta na lista
+int busca(TNo *usuariosComBitcoins, int indice) {
+	while(usuariosComBitcoins) {
+		if(usuariosComBitcoins->indice == indice) return 1;
+		usuariosComBitcoins = usuariosComBitcoins->prox;
+	}
+	return 0;
+}
+
+/* Funcao que gera o bloco genesis, levando em consideracoes suas peculiaridades.
+   Ademais, insere esse bloco no inicio do vetor de blocos minerados, para dar inicio
+   ao processo de mineracao dos demais.
+*/
 void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, MTRand *gerador)
 {
     BlocoNaoMinerado blocoAux;
@@ -218,23 +247,9 @@ void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, M
 	blocoMinerados[0] = blocoGenesis;
 }
 
-void printVetor(unsigned char vetor[], int length) {
-	int i;
-	for(i=0; i<length; i++){
-		printf("%d ", vetor[i]);
-	}
-	printf("\n");
-}
-
-int busca(TNo *usuariosComBitcoins, int indice) {
-	while(usuariosComBitcoins) {
-		if(usuariosComBitcoins->indice == indice) return 1;
-		usuariosComBitcoins = usuariosComBitcoins->prox;
-	}
-	return 0;
-}
-
-
+/* Funcao que gera aleatoriamente o endereco de origem da transacao, dados os 
+   usuarios(enderecos da carteira) contidos na lista.
+*/
 unsigned char geraOrigem(unsigned int *carteira, TNo *usuariosComBitcoins, MTRand *gerador) {
 	int quantidadeLista = contaLista(usuariosComBitcoins);
 	if(!quantidadeLista) return -1;
@@ -248,6 +263,8 @@ unsigned char geraOrigem(unsigned int *carteira, TNo *usuariosComBitcoins, MTRan
 	return usuariosComBitcoins->indice;
 }
 
+
+// funcao que atualiza a lista, inserindo ou retirando usuarios(enderecos da carteira)
 void atualizaLista(TNo **lista, unsigned int carteira[]){
 	for(int i=0; i<256; i++){
 			// quem tem saldo positivo, deve permanecer na lista
@@ -264,6 +281,7 @@ void atualizaLista(TNo **lista, unsigned int carteira[]){
 	}
 }
 
+// funcao que escreve 16 blocos minerados no arquivo final
 void escreveArquivo(FILE *arquivo, BlocoMinerado* dados){
 	fwrite(dados, sizeof(BlocoMinerado), 16, arquivo);
 }
