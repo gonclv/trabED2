@@ -37,30 +37,41 @@ void printVetor(unsigned char vetor[], int length);
 unsigned char geraOrigem(unsigned int *carteira, TNo *usuariosComBitcoins, MTRand *gerador);
 int busca(TNo *usuariosComBitcoins, int indice);
 void atualizaLista(TNo **lista, unsigned int carteira[]);
-// void escreveArquivo(BlocoMinerado *blocosMinerados);
+void escreveArquivo(FILE *arquivo, TNo* dados);
 
 int main(){
+	// << PRINCIPAIS VARIAVEIS >>:
+
 	// variavel para gerar numeros aleatorios
 	MTRand gerador = seedRand(1234567);
+	// lista encadeada para controlar usuários de saldo positivo	
 	TNo *usuariosComBitcoins = NULL;
-
 	// carteira com todos os endereços de usuários
 	unsigned int carteira[256] = {0};
 	// vetor para armazenar blocos minerados
 	BlocoMinerado blocosMinerados[16];
+	// arquivo final contendo os registros da blockchain
 	FILE *pArquivo = fopen("blockchain.bin", "w+");
 	if(!pArquivo) exit(1);
 
+	// << PROCESSO DE MINERACAO >>
+
 	// criando bloco genesis
 	gerarBlocoGenesis(blocosMinerados, carteira, &gerador);
+	// apos cada alteracao na carteira, alteramos também a lista
 	atualizaLista(&usuariosComBitcoins, carteira);
-	
-	// gerando demais 15 blocos
-	// criando blocos temporarios p/ ajudar na mineracao 
+
+	// VARIAVEIS AUXILIARES:
 	BlocoNaoMinerado blocoAux;
-	BlocoMinerado blocoTerminado;
-	for(int i=2; i<=16; i++){
-		inicializaBloco(&blocoAux, blocosMinerados[i-2].hash);
+	int contadorBlocos = 2; // contaremos do bloco 2 ao 30.000
+	int index = 1; // auxilia na gravacao dos blocos no vetor
+	unsigned char hashDoAnterior[SHA256_DIGEST_LENGTH];
+	// copiando hash do genesis
+	memcpy(hashDoAnterior, blocosMinerados[0]->hash, SHA256_DIGEST_LENGTH);
+
+	for(; contadorBlocos <= 64; contadorBlocos++){
+		// primeiro iniciamos um novo bloco, enviando o hash do anterior
+		inicializaBloco(&blocoAux, hashDoAnterior);
 
 		// gerando dados aleatorios
 		int quantTransacoes = genRandLong(&gerador) % 62;
@@ -71,12 +82,12 @@ int main(){
 			blocoAux.data[3*j + 1] = genRandLong(&gerador) % 256;
 			blocoAux.data[3*j + 2] = genRandLong(&gerador) % (carteira[indiceOrigem] + 1);
 			
-			// alterar a carteira			
+			// alterando a carteira			
 			carteira[indiceOrigem] -= blocoAux.data[3*j + 2];
 			carteira[blocoAux.data[3*j + 1]] += blocoAux.data[3*j + 2];
 		}
 
-		//endereço do minerador (aleatório)
+		// gerando endereço do minerador e concedendo 50 bitcoins
 		blocoAux.data[183] = genRandLong(&gerador) % 256;
 		carteira[blocoAux.data[183]] = carteira[blocoAux.data[183]] + 50;
 		
@@ -86,15 +97,25 @@ int main(){
 			blocoAux.nonce += 1;
 			SHA256((unsigned char*) &blocoAux, sizeof(blocoAux), hashGerado);
 		} while(hashGerado[0] != 0);
-		// pronto, minerado!
-		// ja da pra copiar esse dados para o bloco generis
-		blocoTerminado.bloco = blocoAux;
-		memcpy(blocoTerminado.hash, hashGerado, SHA256_DIGEST_LENGTH);
 
-		// colocando no vetor
-		blocosMinerados[i-1] = blocoTerminado;
+		// pronto, minerado!
+		// ja da pra copiar esse dados no vetor, na posicao correta
+		blocosMinerados[index].bloco = blocoAux; 
+		memcpy(blocosMinerados[index].hash, hashGerado, SHA256_DIGEST_LENGTH);
+		// necessario atualizar a lista novamente
 		atualizaLista(&usuariosComBitcoins, carteira);
+		// atualizando hashDoAnterior
+		memcpy(hashDoAnterior, hashGerado, SHA256_DIGEST_LENGTH);
+		index++;
+		
+		// checando se ja pode escrever no arquivo
+		if(index == 16){
+			escreveArquivo(pArquivo, blocosMinerados);
+			index = 0; // reinicia o index
+		}
 	}
+
+
 
 	// exibindo os 16 blocos minerados
 	for(int i=0; i<16; i++){
@@ -108,7 +129,7 @@ int main(){
 		printHash(blocosMinerados[i].hash, SHA256_DIGEST_LENGTH);
 		printf("\n");
 	}
-	
+	fclose(pArquivo);
 	return 0;
 }
 
@@ -241,4 +262,8 @@ void atualizaLista(TNo **lista, unsigned int carteira[]){
 				}
 			}
 	}
+}
+
+void escreveArquivo(FILE *arquivo, TNo* dados){
+	fwrite(dados, sizeof(BlocoMinerado), 16, arquivo);
 }
