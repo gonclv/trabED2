@@ -315,7 +315,7 @@ void converteParaTXT(FILE *arquivo){
 			for(j=0; j<SHA256_DIGEST_LENGTH; j++){
 				fprintf(arqDest, "%02x", buffer[i].hash[j]);
 			}
-			fprintf(arqDest, "\n");
+			fprintf(arqDest, "\n\n");
 		}
 	}
 
