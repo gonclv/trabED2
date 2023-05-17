@@ -263,10 +263,11 @@ void converteParaTXT(FILE *arquivo){
 	while(!feof(arquivo)){
 		fread(buffer, sizeof(BlocoMinerado), 16, arquivo);
 		for(i=0; i<16; i++){
-			fprintf(arqDest, "Bloco %d - Nonce: %d\nData: ", buffer[i].bloco.numero, buffer[i].bloco.nonce);
+			fprintf(arqDest, "Bloco %d\nNonce: %d\nData: ", buffer[i].bloco.numero, buffer[i].bloco.nonce);
 			for(j=0; j<184; j++){
 				fprintf(arqDest, "%d", buffer[i].bloco.data[j]);
 			}
+			fprintf(arqDest, "\nHash Anterior: ")
 			for(j=0; j<SHA256_DIGEST_LENGTH; j++){
 				fprintf(arqDest, "%02x", buffer[i].bloco.hashAnterior[j]);
 			}
