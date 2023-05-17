@@ -296,12 +296,13 @@ void converteParaTXT(FILE *arquivo){
 		for(j=0; j<SHA256_DIGEST_LENGTH; j++){
 			fprintf(arqDest, "%02x", buffer[i].hash[j]);
 		}
-		fprintf(arqDest, "\n");
+		fprintf(arqDest, "\n\n");
 	}
 
 	// continuando copiando normalmente
 	while(!feof(arquivo)){
-		fread(buffer, sizeof(BlocoMinerado), 16, arquivo);
+		int blocosLidos = fread(buffer, sizeof(BlocoMinerado), 16, arquivo);
+		if(blocosLidos != 16) break;
 		for(i=0; i<16; i++){
 			fprintf(arqDest, "Bloco %d\nNonce: %d\nData: ", buffer[i].bloco.numero, buffer[i].bloco.nonce);
 			for(j=0; j<184; j++){
