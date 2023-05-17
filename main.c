@@ -32,6 +32,7 @@ void inicializaBloco(BlocoNaoMinerado* bloco, unsigned char hashAnterior[SHA256_
 void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, MTRand *gerador);
 void mineracao(unsigned int *carteira, FILE *pArquivo);
 void removeLista(TNo **lista, unsigned short k);
+void desalocaLista(TNo **lista);
 void insereLista(TNo **lista, unsigned short k);
 int contaLista(TNo *lista);
 unsigned char geraOrigem(unsigned int *carteira, TNo *usuariosComBitcoins, MTRand *gerador);
@@ -48,9 +49,42 @@ int main(){
 	FILE *pArquivo = fopen("blockchain.bin", "w+");
 	if(!pArquivo) exit(1);
 
-	// << PROCESSO DE MINERACAO >>
-	mineracao(usuariosComBitcoins, carteira, pArquivo);
+	int op;
+	do{
+		printf("============= MENU =============\n");
+		printf("1 - Minerar blocos\n");
+		printf("2 - ...\n");
+		printf("3 - ...\n");
+		printf("0 - Sair");
+		printf("Informe uma opcao: ");
+		scanf("%d", &op);
 
+		switch (op)
+		{
+			case 1:
+				printf("\nSerao minerados 30.000 blocos.\n");
+				printf("Tenha em mente que esse processo sobreescreve os dados gerados anteriormente.\n")
+				printf("Continuar? 1-Sim, 0-Nao: ");
+				int op2;
+				scanf("%d", &op2);
+				if(op2==1)
+					mineracao(carteira, pArquivo);
+				else
+					printf("Mineracao Cancelada.\n\n");
+				break;
+			
+			case 0:
+				printf("Finalizando programa...\n");
+				free(carteira); // desalocando carteira
+				break;
+
+			default:
+				printf("Opcao invalida.\n\n");
+				break;
+		}
+
+	} while(op!=0);
+	
 	fclose(pArquivo);
 	return 0;
 }
@@ -182,6 +216,16 @@ void atualizaLista(TNo **lista, unsigned int *carteira){
 	}
 }
 
+// funcao que desaloca todos os nos da lista
+void desalocaLista(TNo **lista){
+	TNo *aux;
+	while(*lista){
+		aux = *lista;
+		*lista = (*lista)->prox;
+		free(aux);
+	}
+}
+
 // funcao que escreve 16 blocos minerados no arquivo final
 void escreveArquivo(FILE *arquivo, BlocoMinerado* dados){
 	fwrite(dados, sizeof(BlocoMinerado), 16, arquivo);
@@ -266,6 +310,8 @@ void mineracao(unsigned int *carteira, FILE *pArquivo){
 	TNo *usuariosComBitcoins = NULL;
 	// vetor para armazenar blocos minerados
 	BlocoMinerado blocosMinerados[16];
+
+	printf("\nIniciando mineracao...\n");
 	// criando bloco genesis
 	gerarBlocoGenesis(blocosMinerados, carteira, &gerador);
 	// apos cada alteracao na carteira, alteramos tambem a lista
@@ -279,7 +325,7 @@ void mineracao(unsigned int *carteira, FILE *pArquivo){
 	// copiando hash do genesis
 	memcpy(hashDoAnterior, blocosMinerados[0].hash, SHA256_DIGEST_LENGTH);
 
-	for(; contadorBlocos <= 16; contadorBlocos++){
+	for(; contadorBlocos <= 30000; contadorBlocos++){
 		// primeiro iniciamos um novo bloco, enviando o hash do anterior
 		inicializaBloco(&blocoAux, hashDoAnterior);
 
@@ -326,4 +372,6 @@ void mineracao(unsigned int *carteira, FILE *pArquivo){
 	}
 
 	converteParaTXT(pArquivo);
+	desalocaLista(&usuariosComBitcoins);
+	printf("Mineracao concluida.\n\n");
 }
