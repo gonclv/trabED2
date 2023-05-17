@@ -259,6 +259,7 @@ void converteParaTXT(FILE *arquivo){
 
 	BlocoMinerado buffer[16];
 	int i, j;
+	rewind(arquivo);
 	while(!feof(arquivo)){
 		fread(buffer, sizeof(BlocoMinerado), 16, arquivo);
 		for(i=0; i<16; i++){
