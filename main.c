@@ -55,7 +55,7 @@ int main(){
 		printf("1 - Minerar blocos\n");
 		printf("2 - ...\n");
 		printf("3 - ...\n");
-		printf("0 - Sair");
+		printf("0 - Sair\n");
 		printf("Informe uma opcao: ");
 		scanf("%d", &op);
 
