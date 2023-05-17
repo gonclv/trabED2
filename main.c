@@ -75,7 +75,6 @@ int main(){
 			
 			case 0:
 				printf("Finalizando programa...\n");
-				free(carteira); // desalocando carteira
 				break;
 
 			default:
