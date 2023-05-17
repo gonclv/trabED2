@@ -28,18 +28,16 @@ typedef struct TNo {
 
 
 // << FUNCOES E PROCEDIMENTOS >>
-void printHash(unsigned char hash[], int length);
 void inicializaBloco(BlocoNaoMinerado* bloco, unsigned char hashAnterior[SHA256_DIGEST_LENGTH]);
 void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, MTRand *gerador);
 void removeLista(TNo **lista, unsigned short k);
 void insereLista(TNo **lista, unsigned short k);
 int contaLista(TNo *lista);
-void printVetor(unsigned char vetor[], int length);
 unsigned char geraOrigem(unsigned int *carteira, TNo *usuariosComBitcoins, MTRand *gerador);
 int busca(TNo *usuariosComBitcoins, int indice);
 void atualizaLista(TNo **lista, unsigned int carteira[]);
 void escreveArquivo(FILE *arquivo, BlocoMinerado* dados);
-
+void converteParaTXT(FILE *arquivo);
 
 int main(){
 	// << PRINCIPAIS VARIAVEIS >>
@@ -71,7 +69,7 @@ int main(){
 	// copiando hash do genesis
 	memcpy(hashDoAnterior, blocosMinerados[0].hash, SHA256_DIGEST_LENGTH);
 
-	for(; contadorBlocos <= 64; contadorBlocos++){
+	for(; contadorBlocos <= 16; contadorBlocos++){
 		// primeiro iniciamos um novo bloco, enviando o hash do anterior
 		inicializaBloco(&blocoAux, hashDoAnterior);
 
@@ -117,41 +115,8 @@ int main(){
 		}
 	}
 
-
-
-	// exibindo os 16 ultimos blocos minerados
-	for(int i=0; i<16; i++){
-		printf("Número do bloco: %d\n", blocosMinerados[i].bloco.numero);
-		printf("Nonce: %d\n", blocosMinerados[i].bloco.nonce);
-		printf("Data: ");
-		printVetor(blocosMinerados[i].bloco.data, 184);
-		printf("Hash anterior: ");
-		printHash(blocosMinerados[i].bloco.hashAnterior, SHA256_DIGEST_LENGTH);
-		printf("Hash: ");
-		printHash(blocosMinerados[i].hash, SHA256_DIGEST_LENGTH);
-		printf("\n");
-	}
-
 	fclose(pArquivo);
 	return 0;
-}
-
-// funcao que exibe na tela o codigo hash em hexadecimal
-void printHash(unsigned char hash[], int length){
-	int i;
-	for(i=0; i<length; i++){
-		printf("%02x", hash[i]);
-	}
-	printf("\n");
-}
-
-// funcao que exibe na tela o conteudo de um vetor
-void printVetor(unsigned char vetor[], int length) {
-	int i;
-	for(i=0; i<length; i++){
-		printf("%d ", vetor[i]);
-	}
-	printf("\n");
 }
 
 // funcao que inicializa um bloco com valores iniciais, alem de copiar nesse bloco o hash do anterior
@@ -284,4 +249,30 @@ void atualizaLista(TNo **lista, unsigned int carteira[]){
 // funcao que escreve 16 blocos minerados no arquivo final
 void escreveArquivo(FILE *arquivo, BlocoMinerado* dados){
 	fwrite(dados, sizeof(BlocoMinerado), 16, arquivo);
+}
+
+void converteParaTXT(FILE *arquivo){
+	if(!arquivo) return;
+	FILE *arqDest = fopen("blockchain.txt");
+	if(!arqDest) return;
+
+	BlocoMinerado buffer[16];
+	int i, j;
+	while(!feof(arquivo)){
+		fread(buffer, sizeof(BlocoMinerado), 16, arquivo);
+		for(i=0; i<16; i++){
+			fprintf(arqDest, "Bloco %d - Nonce: %d\nData: ", buffer[i].bloco.numero, buffer[i].bloco.nonce);
+			for(j=0; j<184; j++){
+				fprintf(arqDest, "%d", buffer[i].bloco.hashAnterior);
+			}
+			for(j=0; j<SHA256_DIGEST_LENGTH; j++){
+				fprintf(arqDest, "%02x", buffer[i].bloco.hashAnterior);
+			}
+			fprintf(arqDest, "\nHash: ");
+			for(j=0; j<SHA256_DIGEST_LENGTH; j++){
+				fprintf(arqDest, "%02x", buffer[i].hash);
+			}
+			fprintf(arqDest, "\n");
+		}
+	}
 }
