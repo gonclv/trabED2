@@ -115,6 +115,7 @@ int main(){
 		}
 	}
 
+	converteParaTXT(pArquivo);
 	fclose(pArquivo);
 	return 0;
 }
