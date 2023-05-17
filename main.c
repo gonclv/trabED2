@@ -253,7 +253,7 @@ void escreveArquivo(FILE *arquivo, BlocoMinerado* dados){
 
 void converteParaTXT(FILE *arquivo){
 	if(!arquivo) return;
-	FILE *arqDest = fopen("blockchain.txt");
+	FILE *arqDest = fopen("blockchain.txt", "w");
 	if(!arqDest) return;
 
 	BlocoMinerado buffer[16];
