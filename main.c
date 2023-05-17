@@ -267,7 +267,7 @@ void converteParaTXT(FILE *arquivo){
 			for(j=0; j<184; j++){
 				fprintf(arqDest, "%d", buffer[i].bloco.data[j]);
 			}
-			fprintf(arqDest, "\nHash Anterior: ")
+			fprintf(arqDest, "\nHash Anterior: ");
 			for(j=0; j<SHA256_DIGEST_LENGTH; j++){
 				fprintf(arqDest, "%02x", buffer[i].bloco.hashAnterior[j]);
 			}
