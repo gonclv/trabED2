@@ -63,7 +63,7 @@ int main(){
 		{
 			case 1:
 				printf("\nSerao minerados 30.000 blocos.\n");
-				printf("Tenha em mente que esse processo sobreescreve os dados gerados anteriormente.\n")
+				printf("Tenha em mente que esse processo sobreescreve os dados gerados anteriormente.\n");
 				printf("Continuar? 1-Sim, 0-Nao: ");
 				int op2;
 				scanf("%d", &op2);
