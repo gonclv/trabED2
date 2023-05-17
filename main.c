@@ -252,14 +252,54 @@ void escreveArquivo(FILE *arquivo, BlocoMinerado* dados){
 	fwrite(dados, sizeof(BlocoMinerado), 16, arquivo);
 }
 
+// funcao que converte o conteudo do arquivo binario para arquivo texto
 void converteParaTXT(FILE *arquivo){
 	if(!arquivo) return;
 	FILE *arqDest = fopen("blockchain.txt", "w");
 	if(!arqDest) return;
 
+	// variaveis auxiliares
 	BlocoMinerado buffer[16];
 	int i, j;
+
 	rewind(arquivo);
+	// lendo primeiros 16 blocos, fora do loop, pq o genesis sera tratado diferente
+	fread(buffer, sizeof(BlocoMinerado), 16, arquivo);
+	
+	// exibindo genesis
+	fprintf(arqDest, "Bloco %d\nNonce: %d\nData: ", buffer[0].bloco.numero, buffer[0].bloco.nonce);
+	for(j=0; j<183; j++){
+		fprintf(arqDest, "%c", buffer[0].bloco.data[j]);
+	}
+	fprintf(arqDest, "%d", buffer[0].bloco.data[183]);
+	fprintf(arqDest, "\nHash Anterior: ");
+	for(j=0; j<SHA256_DIGEST_LENGTH; j++){
+		fprintf(arqDest, "%02x", buffer[0].bloco.hashAnterior[j]);
+	}
+	fprintf(arqDest, "\nHash: ");
+	for(j=0; j<SHA256_DIGEST_LENGTH; j++){
+		fprintf(arqDest, "%02x", buffer[0].hash[j]);
+	}
+	fprintf(arqDest, "\n");
+
+	// exibindo os 15 demais
+	for(i=1; i<16; i++){
+		fprintf(arqDest, "Bloco %d\nNonce: %d\nData: ", buffer[i].bloco.numero, buffer[i].bloco.nonce);
+		for(j=0; j<184; j++){
+			fprintf(arqDest, "%d", buffer[i].bloco.data[j]);
+		}
+		fprintf(arqDest, "\nHash Anterior: ");
+		for(j=0; j<SHA256_DIGEST_LENGTH; j++){
+			fprintf(arqDest, "%02x", buffer[i].bloco.hashAnterior[j]);
+		}
+		fprintf(arqDest, "\nHash: ");
+		for(j=0; j<SHA256_DIGEST_LENGTH; j++){
+			fprintf(arqDest, "%02x", buffer[i].hash[j]);
+		}
+		fprintf(arqDest, "\n");
+	}
+
+	// continuando copiando normalmente
 	while(!feof(arquivo)){
 		fread(buffer, sizeof(BlocoMinerado), 16, arquivo);
 		for(i=0; i<16; i++){
