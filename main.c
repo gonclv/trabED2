@@ -35,7 +35,7 @@ void removeLista(TNo **lista, unsigned short k);
 void desalocaLista(TNo **lista);
 void insereLista(TNo **lista, unsigned short k);
 int contaLista(TNo *lista);
-unsigned char geraOrigem(unsigned int *carteira, TNo *usuariosComBitcoins, MTRand *gerador);
+unsigned char geraOrigem(TNo *usuariosComBitcoins, MTRand *gerador);
 int busca(TNo *usuariosComBitcoins, int indice);
 void atualizaLista(TNo **lista, unsigned int *carteira);
 void escreveArquivo(FILE *arquivo, BlocoMinerado* dados);
@@ -184,7 +184,7 @@ void gerarBlocoGenesis(BlocoMinerado blocoMinerados[], unsigned int *carteira, M
 /* Funcao que gera aleatoriamente o endereco de origem da transacao, dados os 
    usuarios(enderecos da carteira) contidos na lista.
 */
-unsigned char geraOrigem(unsigned int *carteira, TNo *usuariosComBitcoins, MTRand *gerador) {
+unsigned char geraOrigem(TNo *usuariosComBitcoins, MTRand *gerador) {
 	int quantidadeLista = contaLista(usuariosComBitcoins);
 	if(!quantidadeLista) return -1;
 	// se tiver apenas um elemento na lista, retorna ele
@@ -332,13 +332,19 @@ void mineracao(unsigned int *carteira, FILE *pArquivo){
 		int quantTransacoes = genRandLong(&gerador) % 62;
 		for(int j = 0; j < quantTransacoes; j++) {
 
-			unsigned char indiceOrigem = geraOrigem(carteira, usuariosComBitcoins, &gerador);
+			unsigned char indiceOrigem = geraOrigem(usuariosComBitcoins, &gerador);
 			blocoAux.data[3*j] = indiceOrigem;
 			blocoAux.data[3*j + 1] = genRandLong(&gerador) % 256;
 			blocoAux.data[3*j + 2] = genRandLong(&gerador) % (carteira[indiceOrigem] + 1);
 			
-			// alterando a carteira			
+			// alterando o saldo da origem na carteira			
 			carteira[indiceOrigem] -= blocoAux.data[3*j + 2];
+			// verifica se origem zerou
+			if((carteira[indiceOrigem] == 0) && (contaLista(usuariosComBitcoins) > 1)) 
+				remover(usuariosComBitcoins, indiceOrigem);
+		}
+		// atualizando agora o saldo dos usuarios destinos, ja que nao foi feito no loop acima
+		for(int j = 0; j < quantTransacoes; j++) {
 			carteira[blocoAux.data[3*j + 1]] += blocoAux.data[3*j + 2];
 		}
 
