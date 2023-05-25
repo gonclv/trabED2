@@ -341,7 +341,7 @@ void mineracao(unsigned int *carteira, FILE *pArquivo){
 			carteira[indiceOrigem] -= blocoAux.data[3*j + 2];
 			// verifica se origem zerou
 			if((carteira[indiceOrigem] == 0) && (contaLista(usuariosComBitcoins) > 1)) 
-				remover(usuariosComBitcoins, indiceOrigem);
+				removeLista(&usuariosComBitcoins, indiceOrigem);
 		}
 		// atualizando agora o saldo dos usuarios destinos, ja que nao foi feito no loop acima
 		for(int j = 0; j < quantTransacoes; j++) {
