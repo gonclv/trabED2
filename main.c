@@ -40,6 +40,8 @@ int busca(TNo *usuariosComBitcoins, int indice);
 void atualizaLista(TNo **lista, unsigned int *carteira);
 void escreveArquivo(FILE *arquivo, BlocoMinerado* dados);
 void converteParaTXT(FILE *arquivo);
+void blocosMineradosEndereco(unsigned int endereco, unsigned int n, FILE *arqBlockchain);
+void blocosMineradosNonce(unsigned int nonce, FILE *arqBlockchain);
 
 int main(){
 	// << PRINCIPAIS VARIAVEIS >>
@@ -72,7 +74,25 @@ int main(){
 				else
 					printf("Mineracao Cancelada.\n\n");
 				break;
-			
+
+			//mudar numero
+			case 2:
+				unsigned int endereco, n;
+				printf("Digite o endereco do minerador: ");
+				scanf("%d", &endereco);
+				printf("Digite o numero de blocos que deseja imprimir: ");
+				scanf("%d", &n);
+				blocosMineradosEndereco(endereco, n, pArquivo);
+				break;
+
+			//mudar numero
+			case 3:
+				unsigned int nonce;
+				printf("Digite o nonce: ");
+				scanf("%d", &nonce);
+				blocosMineradosNonce(endereco, pArquivo);
+				break;
+
 			case 0:
 				printf("Finalizando programa...\n");
 				break;
@@ -379,4 +399,153 @@ void mineracao(unsigned int *carteira, FILE *pArquivo){
 	converteParaTXT(pArquivo);
 	desalocaLista(&usuariosComBitcoins);
 	printf("Mineracao concluida.\n\n");
+}
+
+//Função que imprime um bloco minerado dado
+void printBloco(BlocoMinerado blocoMinerado) {
+	int i;
+
+	printf("Bloco %d\nNonce: %d\nData: ", blocoMinerado.bloco.numero, blocoMinerado.bloco.nonce);
+
+	if(blocoMinerado.bloco.numero == 1) {
+		for(i = 0; i < 183; i++)
+			printf("%c", blocoMinerado.bloco.data[i]);
+		printf(" %d", blocoMinerado.bloco.data[183]);
+	}
+	else {
+		for(i = 0; i < 184; i++)
+			printf("%d ", blocoMinerado.bloco.data[i]);
+	}
+
+	printf("\nHash Anterior: ");
+	for(i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+		printf("%02x", blocoMinerado.bloco.hashAnterior[i]);
+	}
+
+	printf("\nHash: ");
+	for(i = 0; i < SHA256_DIGEST_LENGTH; i++){
+		printf("%02x", blocoMinerado.hash[i]);
+	}
+	printf("\n\n");
+}
+
+//Funcao que imprime os n primeiros blocos minerados por um determinado endereço
+void blocosMineradosEndereco(unsigned int endereco, unsigned int n, FILE *arqBlockchain) {
+	int i;
+	BlocoMinerado buffer[16];
+
+	if(!arqBlockchain) {
+		printf("Erro: Voce precisa criar a blockchain primeiro.\n");
+		return;
+	}
+	
+	//Abrir o arquivo de índices no campo data[184]
+	FILE *arqIndices = fopen("indiceMineradores.txt", "r");
+
+	//Caso o arquivo de índices ainda não exista, devemos criá-lo
+	if(!arqIndices) {
+		arqIndices = fopen("indiceMineradores.txt", "w+");
+		if(!arqIndices) {
+			printf("Erro: Nao foi possivel criar o arquivo de índices.\n");
+			return;
+		}
+
+		rewind(arqBlockchain);
+		unsigned short blocosLidos = 0; //Contador de blocos de disco lidos do arquivo da blockchain
+
+		while(!feof(arqBlockchain)){
+			if(fread(buffer, sizeof(BlocoMinerado), 16, arqBlockchain) != 16) break;
+
+			for(i = 0; i < 16; i++) {
+				/*Estrutura do arquivo de índices:
+				[MINERADOR] [NUMERO DO BLOCO NO DISCO] */
+				printf("%d\n", blocosLidos);
+				fprintf(arqIndices, "%d %d\n", buffer[i].bloco.data[183], blocosLidos);
+			}
+			
+			blocosLidos++;
+		}
+	}
+
+	rewind(arqBlockchain);
+	TNo *listaBlocos = NULL;
+	unsigned int enderecoLido;
+	unsigned short numBlocoDisco;
+
+	//Buscando no arquivo de índices
+	/*
+	while(!feof(arqIndices)) {
+		//fscanf(arqIndices, "%d %d", enderecoLido, numBlocoDisco);
+
+		//Colocando em uma lista os blocos do arquivo que contém blocos minerados pelo endereço dado
+		if(enderecoLido == endereco) {
+			//Para cada bloco do disco que contém um bloco minerado pelo endereço, buscar e imprimir esse bloco
+			int deu = fseek(arqBlockchain, 4096 * numBlocoDisco, SEEK_SET);
+			printf("%d\n", deu);
+			fread(buffer, sizeof(BlocoMinerado), 16, arqBlockchain);
+
+			for(i = 0; i < 16; i++)
+				if(buffer[i].bloco.data[183] == endereco)
+					printBloco(buffer[i]);
+		}
+	}
+	*/
+
+	//Testando fseek - remover depois
+	numBlocoDisco = 6;
+	fseek(arqBlockchain, 4096 * numBlocoDisco, SEEK_SET);
+	fread(buffer, sizeof(BlocoMinerado), 16, arqBlockchain);
+	for(i = 0; i < 16; i++)
+		if(buffer[i].bloco.data[183] == endereco)
+			printBloco(buffer[i]);
+	
+	//Fechando arquivo
+	fclose(arqIndices);
+}
+
+//Funcao que imprime os blocos que possuem um determinado nonce
+void blocosMineradosNonce(unsigned int nonce, FILE *arqBlockchain) {
+	int i;
+	BlocoMinerado buffer[16];
+
+	if(!arqBlockchain) {
+		printf("Erro: Voce precisa criar a blockchain primeiro.\n");
+		return;
+	}
+	
+	//Abrir o arquivo de índices no campo nonce
+	FILE *arqIndices = fopen("indiceNonce.txt", "r");
+
+	//Caso o arquivo de índices ainda não exista, devemos criá-lo
+	if(!arqIndices) {
+		arqIndices = fopen("indiceNonce.txt", "w+");
+		if(!arqIndices) {
+			printf("Erro: Nao foi possivel criar o arquivo de índices.\n");
+			return;
+		}
+
+		rewind(arqBlockchain);
+		unsigned int blocosLidos = 0; //Contador de blocos de disco lidos do arquivo da blockchain
+
+		while(!feof(arqBlockchain)){
+			if(fread(buffer, sizeof(BlocoMinerado), 16, arqBlockchain) != 16) break;
+
+			for(i = 0; i < 16; i++) {
+				/*Estrutura do arquivo de índices:
+				[MINERADOR] [NUMERO DO BLOCO NO DISCO] */
+				fprintf(arqIndices, "%d %d\n", buffer[i].bloco.nonce, blocosLidos);
+			}
+
+			blocosLidos++;
+		}
+	}
+
+	//Buscando o endereço no arquivo de índices
+
+	//Colocando em uma lista os blocos do arquivo que contém o dado nonce
+
+	//Para cada bloco do disco que contém um bloco com o nonce, buscar e imprimir esse bloco
+
+	//Fechando arquivo
+	fclose(arqIndices);
 }
