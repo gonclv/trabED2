@@ -90,7 +90,7 @@ int main(){
 				unsigned int nonce;
 				printf("Digite o nonce: ");
 				scanf("%d", &nonce);
-				blocosMineradosNonce(endereco, pArquivo);
+				blocosMineradosNonce(nonce, pArquivo);
 				break;
 
 			case 0:
@@ -133,6 +133,19 @@ void insereLista(TNo **lista, unsigned short k){
 	//novo->qtdDeBitcoins = saldo;
 	novo->prox = *lista;
 	*lista = novo;
+}
+
+//Função que insere um nó no final de uma lista
+void insereFim(TNo **lista, unsigned short k) {
+	if((*lista) == NULL) {
+		TNo *novo = (TNo*) malloc(sizeof(TNo));
+		if(!novo) return;
+		novo->indice = k;
+		novo->prox = NULL;
+		*lista = novo;
+		return;
+	}
+	insereFim(&(*lista)->prox, k);
 }
 
 // funcao que retorna o numero de elemento na lista
@@ -451,7 +464,7 @@ void blocosMineradosEndereco(unsigned int endereco, unsigned int n, FILE *arqBlo
 		}
 
 		rewind(arqBlockchain);
-		unsigned short blocosLidos = 0; //Contador de blocos de disco lidos do arquivo da blockchain
+		unsigned short blocoArquivo = 0; //Armazena o bloco de disco que está sendo lido do arquivo da blockchain
 
 		while(!feof(arqBlockchain)){
 			if(fread(buffer, sizeof(BlocoMinerado), 16, arqBlockchain) != 16) break;
@@ -459,48 +472,53 @@ void blocosMineradosEndereco(unsigned int endereco, unsigned int n, FILE *arqBlo
 			for(i = 0; i < 16; i++) {
 				/*Estrutura do arquivo de índices:
 				[MINERADOR] [NUMERO DO BLOCO NO DISCO] */
-				printf("%d\n", blocosLidos);
-				fprintf(arqIndices, "%d %d\n", buffer[i].bloco.data[183], blocosLidos);
+				fprintf(arqIndices, "%d %d\n", buffer[i].bloco.data[183], blocoArquivo);
 			}
 			
-			blocosLidos++;
+			blocoArquivo++;
 		}
 	}
 
-	rewind(arqBlockchain);
-	TNo *listaBlocos = NULL;
-	unsigned int enderecoLido;
-	unsigned short numBlocoDisco;
+	TNo *listaBlocosDisco = NULL;
+	unsigned int enderecoLido, numBlocoDisco;
+	int contBlocos = 0; //Conta quantos blocos da blockchain foram lidos
 
 	//Buscando no arquivo de índices
-	/*
-	while(!feof(arqIndices)) {
-		//fscanf(arqIndices, "%d %d", enderecoLido, numBlocoDisco);
+	while(!feof(arqIndices) && (contBlocos < n)) {
+		fscanf(arqIndices, "%d %d", &enderecoLido, &numBlocoDisco);
 
 		//Colocando em uma lista os blocos do arquivo que contém blocos minerados pelo endereço dado
 		if(enderecoLido == endereco) {
-			//Para cada bloco do disco que contém um bloco minerado pelo endereço, buscar e imprimir esse bloco
-			int deu = fseek(arqBlockchain, 4096 * numBlocoDisco, SEEK_SET);
-			printf("%d\n", deu);
-			fread(buffer, sizeof(BlocoMinerado), 16, arqBlockchain);
+			contBlocos++;
 
-			for(i = 0; i < 16; i++)
-				if(buffer[i].bloco.data[183] == endereco)
-					printBloco(buffer[i]);
+			if(!busca(listaBlocosDisco, numBlocoDisco))
+				insereFim(&listaBlocosDisco, numBlocoDisco);
 		}
 	}
-	*/
 
-	//Testando fseek - remover depois
-	numBlocoDisco = 6;
-	fseek(arqBlockchain, 4096 * numBlocoDisco, SEEK_SET);
-	fread(buffer, sizeof(BlocoMinerado), 16, arqBlockchain);
-	for(i = 0; i < 16; i++)
-		if(buffer[i].bloco.data[183] == endereco)
-			printBloco(buffer[i]);
-	
-	//Fechando arquivo
+	//Não precisamos mais do arquivo de índices
 	fclose(arqIndices);
+
+	TNo *aux = listaBlocosDisco;
+	int contImpressos = 0; //Conta quantos blocos da blockchain foram imprimidos
+
+	//Percorrendo a lista
+	while((aux != NULL)) {
+		//Carregar na memória todos os blocos da blockchain que estão contidos no bloco do disco
+		fseek(arqBlockchain, 4096 * (aux->indice), SEEK_SET);
+		fread(buffer, sizeof(BlocoMinerado), 16, arqBlockchain);
+
+		//Procurar e imprimir, entre os blocos carregados, qual foi minerado por aquele endereço
+		for(i = 0; i < 16; i++) {
+			if(buffer[i].bloco.data[183] == endereco) {
+				printBloco(buffer[i]);
+				contImpressos++;
+				if(contImpressos >= contBlocos) return; //Já imprimiu tudo
+			}
+		}
+
+		aux = aux->prox;
+	}
 }
 
 //Funcao que imprime os blocos que possuem um determinado nonce
@@ -540,11 +558,33 @@ void blocosMineradosNonce(unsigned int nonce, FILE *arqBlockchain) {
 		}
 	}
 
-	//Buscando o endereço no arquivo de índices
+	TNo *listaBlocosDisco = NULL;
+	unsigned int nonceLido, numBlocoDisco;
 
-	//Colocando em uma lista os blocos do arquivo que contém o dado nonce
+	//Buscando o nonce no arquivo de índices
+	while(!feof(arqIndices)) {
+		fscanf(arqIndices, "%d %d", &nonceLido, &numBlocoDisco);
 
-	//Para cada bloco do disco que contém um bloco com o nonce, buscar e imprimir esse bloco
+		//Colocando em uma lista os blocos do arquivo que contém o dado nonce
+		if(nonceLido == nonce)
+			if(!busca(listaBlocosDisco, numBlocoDisco))
+				insereFim(&listaBlocosDisco, numBlocoDisco);
+	}
+
+	//Percorrendo a lista
+	TNo *aux = listaBlocosDisco;
+	while(aux) {
+		//Carregar na memória todos os blocos da blockchain que estão contidos no bloco do disco
+		fseek(arqBlockchain, 4096 * (aux->indice), SEEK_SET);
+		fread(buffer, sizeof(BlocoMinerado), 16, arqBlockchain);
+
+		//Procurar e imprimir, entre os blocos carregados, qual foi minerado por aquele endereço
+		for(i = 0; i < 16; i++)
+			if(buffer[i].bloco.nonce == nonce)
+				printBloco(buffer[i]);
+
+		aux = aux->prox;
+	}
 
 	//Fechando arquivo
 	fclose(arqIndices);
