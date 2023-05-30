@@ -26,6 +26,11 @@ typedef struct TNo {
 	struct TNo *prox;
 } TNo;
 
+typedef struct noBloco {
+	BlocoMinerado bloco;
+	int numTransacoes;
+	struct noBloco *prox;
+} TNoBloco;
 
 // << FUNCOES E PROCEDIMENTOS >>
 void inicializaBloco(BlocoNaoMinerado* bloco, unsigned char hashAnterior[SHA256_DIGEST_LENGTH]);
@@ -40,6 +45,10 @@ int busca(TNo *usuariosComBitcoins, int indice);
 void atualizaLista(TNo **lista, unsigned int *carteira);
 void escreveArquivo(FILE *arquivo, BlocoMinerado* dados);
 void converteParaTXT(FILE *arquivo);
+void blocosMineradosEndereco(unsigned int endereco, unsigned int n, FILE *arqBlockchain);
+void insereListaOrdenada(TNoBloco **lista, BlocoMinerado bloco, int numTransacoes);
+void primeirosBlocos(FILE *arqBlockchain, unsigned int n);
+void blocosMineradosNonce(unsigned int nonce, FILE *arqBlockchain);
 
 int main(){
 	// << PRINCIPAIS VARIAVEIS >>
@@ -72,7 +81,33 @@ int main(){
 				else
 					printf("Mineracao Cancelada.\n\n");
 				break;
-			
+
+			//mudar numero
+			case 2:
+				unsigned int endereco, n;
+				printf("Digite o endereco do minerador: ");
+				scanf("%d", &endereco);
+				printf("Digite o numero de blocos que deseja imprimir: ");
+				scanf("%d", &n);
+				blocosMineradosEndereco(endereco, n, pArquivo);
+				break;
+
+			//mudar numero
+			case 3:
+				unsigned int num;
+				printf("Digite o número de blocos que deseja imprimir: ");
+				scanf("%d", &num);
+				primeirosBlocos(pArquivo, num);
+				break;
+
+			//mudar número
+			case 4:
+				unsigned int nonce;
+				printf("Digite o nonce: ");
+				scanf("%d", &nonce);
+				blocosMineradosNonce(nonce, pArquivo);
+				break;
+
 			case 0:
 				printf("Finalizando programa...\n");
 				break;
@@ -113,6 +148,19 @@ void insereLista(TNo **lista, unsigned short k){
 	//novo->qtdDeBitcoins = saldo;
 	novo->prox = *lista;
 	*lista = novo;
+}
+
+//Função que insere um nó no final de uma lista
+void insereFim(TNo **lista, unsigned short k) {
+	if((*lista) == NULL) {
+		TNo *novo = (TNo*) malloc(sizeof(TNo));
+		if(!novo) return;
+		novo->indice = k;
+		novo->prox = NULL;
+		*lista = novo;
+		return;
+	}
+	insereFim(&(*lista)->prox, k);
 }
 
 // funcao que retorna o numero de elemento na lista
@@ -379,4 +427,262 @@ void mineracao(unsigned int *carteira, FILE *pArquivo){
 	converteParaTXT(pArquivo);
 	desalocaLista(&usuariosComBitcoins);
 	printf("Mineracao concluida.\n\n");
+}
+
+//Função que imprime um bloco minerado dado
+void printBloco(BlocoMinerado blocoMinerado) {
+	int i;
+
+	printf("Bloco %d\nNonce: %d\nData: ", blocoMinerado.bloco.numero, blocoMinerado.bloco.nonce);
+
+	if(blocoMinerado.bloco.numero == 1) {
+		for(i = 0; i < 183; i++)
+			printf("%c", blocoMinerado.bloco.data[i]);
+		printf(" %d", blocoMinerado.bloco.data[183]);
+	}
+	else {
+		for(i = 0; i < 184; i++)
+			printf("%d ", blocoMinerado.bloco.data[i]);
+	}
+
+	printf("\nHash Anterior: ");
+	for(i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+		printf("%02x", blocoMinerado.bloco.hashAnterior[i]);
+	}
+
+	printf("\nHash: ");
+	for(i = 0; i < SHA256_DIGEST_LENGTH; i++){
+		printf("%02x", blocoMinerado.hash[i]);
+	}
+	printf("\n\n");
+}
+
+//Funcao que imprime os n primeiros blocos minerados por um determinado endereço
+void blocosMineradosEndereco(unsigned int endereco, unsigned int n, FILE *arqBlockchain) {
+	int i;
+	BlocoMinerado buffer[16];
+
+	if(!arqBlockchain) {
+		printf("Erro: Voce precisa criar a blockchain primeiro.\n");
+		return;
+	}
+	
+	//Abrir o arquivo de índices no campo data[184]
+	FILE *arqIndices = fopen("indiceMineradores.txt", "r");
+
+	//Caso o arquivo de índices ainda não exista, devemos criá-lo
+	if(!arqIndices) {
+		arqIndices = fopen("indiceMineradores.txt", "w+");
+		if(!arqIndices) {
+			printf("Erro: Nao foi possivel criar o arquivo de índices.\n");
+			return;
+		}
+
+		rewind(arqBlockchain);
+		unsigned short blocoArquivo = 0; //Armazena o bloco de disco que está sendo lido do arquivo da blockchain
+
+		while(!feof(arqBlockchain)){
+			if(fread(buffer, sizeof(BlocoMinerado), 16, arqBlockchain) != 16) break;
+
+			for(i = 0; i < 16; i++) {
+				/*Estrutura do arquivo de índices:
+				[MINERADOR] [NUMERO DO BLOCO NO DISCO] */
+				fprintf(arqIndices, "%d %d\n", buffer[i].bloco.data[183], blocoArquivo);
+			}
+			
+			blocoArquivo++;
+		}
+	}
+
+	TNo *listaBlocosDisco = NULL;
+	unsigned int enderecoLido, numBlocoDisco;
+	int contBlocos = 0; //Conta quantos blocos da blockchain foram lidos
+
+	//Buscando no arquivo de índices
+	while(!feof(arqIndices) && (contBlocos < n)) {
+		fscanf(arqIndices, "%d %d", &enderecoLido, &numBlocoDisco);
+
+		//Colocando em uma lista os blocos do arquivo que contém blocos minerados pelo endereço dado
+		if(enderecoLido == endereco) {
+			contBlocos++;
+
+			if(!busca(listaBlocosDisco, numBlocoDisco))
+				insereFim(&listaBlocosDisco, numBlocoDisco);
+		}
+	}
+
+	//Não precisamos mais do arquivo de índices
+	fclose(arqIndices);
+
+	TNo *aux = listaBlocosDisco;
+	int contImpressos = 0; //Conta quantos blocos da blockchain foram imprimidos
+
+	//Percorrendo a lista
+	while((aux != NULL)) {
+		//Carregar na memória todos os blocos da blockchain que estão contidos no bloco do disco
+		fseek(arqBlockchain, 4096 * (aux->indice), SEEK_SET);
+		fread(buffer, sizeof(BlocoMinerado), 16, arqBlockchain);
+
+		//Procurar e imprimir, entre os blocos carregados, qual foi minerado por aquele endereço
+		for(i = 0; i < 16; i++) {
+			if(buffer[i].bloco.data[183] == endereco) {
+				printBloco(buffer[i]);
+				contImpressos++;
+				if(contImpressos >= contBlocos) return; //Já imprimiu tudo
+			}
+		}
+
+		aux = aux->prox;
+	}
+}
+
+//Funcao para inserir em uma lista ordenada
+void insereListaOrdenada(TNoBloco **lista, BlocoMinerado bloco, int numTransacoes) {
+    TNoBloco *aux, *novo = malloc(sizeof(TNoBloco));
+	if(!novo) return;
+	novo->bloco = bloco;
+    novo->numTransacoes = numTransacoes;
+        
+    if(*lista == NULL) {
+        novo->prox = NULL;
+        *lista = novo;
+    }
+    else if(novo->numTransacoes < (*lista)->numTransacoes) {
+        novo->prox = *lista;
+        *lista = novo;
+    }
+    else {
+        aux = *lista;
+        while(aux->prox && novo->numTransacoes > aux->prox->numTransacoes)
+            aux = aux->prox;
+        novo->prox = aux->prox;
+        aux->prox = novo;
+    }
+}
+
+//Funcao que imprime os n primeiros blocos da blockchain
+void primeirosBlocos(FILE *arqBlockchain, unsigned int n) {
+	int i, j;
+	BlocoMinerado buffer[16];
+	TNoBloco *listaBlocos = NULL;
+	int contImpressos = 0; //Conta quantos blocos da blockchain foram imprimidos
+
+	if(!arqBlockchain) {
+		printf("Erro: Voce precisa criar a blockchain primeiro.\n");
+		return;
+	}
+
+	rewind(arqBlockchain);
+	int quantTransacoes = 0;
+
+	fread(buffer, sizeof(BlocoMinerado), 16, arqBlockchain);
+
+	insereListaOrdenada(&listaBlocos, buffer[0], 0); //Genesis
+	contImpressos++;
+
+	for(i = 1; i < 16; i++) {
+		if(contImpressos >= n) break; //Já imprimiu tudo
+		for(j = 0; j < 61; j++) {
+			if((buffer[i].bloco.data[3*j] != 0) || (buffer[i].bloco.data[3*j + 1] != 0) || (buffer[i].bloco.data[3*j + 2] != 0)) {
+				quantTransacoes++;
+			}
+		}
+		insereListaOrdenada(&listaBlocos, buffer[i], quantTransacoes);
+			
+		contImpressos++;
+		quantTransacoes = 0;
+	}
+
+	while(!feof(arqBlockchain) && (contImpressos < n)) {
+		fread(buffer, sizeof(BlocoMinerado), 16, arqBlockchain);
+
+		for(i = 0; i < 16; i++) {
+			if(contImpressos >= n) break; //Já imprimiu tudo
+			for(j = 0; j < 61; j++) {
+				if((buffer[i].bloco.data[3*j] != 0) || (buffer[i].bloco.data[3*j + 1] != 0) || (buffer[i].bloco.data[3*j + 2] != 0)) {
+					quantTransacoes++;
+				}
+			}
+			insereListaOrdenada(&listaBlocos, buffer[i], quantTransacoes);
+			
+			contImpressos++;
+			quantTransacoes = 0;
+		}
+	}
+
+	TNoBloco *aux = listaBlocos;
+	while(aux) {
+		//printf("Quantidade de transações: %d\n", aux->numTransacoes);
+		printBloco(aux->bloco);
+		aux = aux->prox;
+	}
+}
+
+//Funcao que imprime os blocos que possuem um determinado nonce
+void blocosMineradosNonce(unsigned int nonce, FILE *arqBlockchain) {
+	int i;
+	BlocoMinerado buffer[16];
+
+	if(!arqBlockchain) {
+		printf("Erro: Voce precisa criar a blockchain primeiro.\n");
+		return;
+	}
+	
+	//Abrir o arquivo de índices no campo nonce
+	FILE *arqIndices = fopen("indiceNonce.txt", "r");
+
+	//Caso o arquivo de índices ainda não exista, devemos criá-lo
+	if(!arqIndices) {
+		arqIndices = fopen("indiceNonce.txt", "w+");
+		if(!arqIndices) {
+			printf("Erro: Nao foi possivel criar o arquivo de índices.\n");
+			return;
+		}
+
+		rewind(arqBlockchain);
+		unsigned int blocosLidos = 0; //Contador de blocos de disco lidos do arquivo da blockchain
+
+		while(!feof(arqBlockchain)){
+			if(fread(buffer, sizeof(BlocoMinerado), 16, arqBlockchain) != 16) break;
+
+			for(i = 0; i < 16; i++) {
+				/*Estrutura do arquivo de índices:
+				[MINERADOR] [NUMERO DO BLOCO NO DISCO] */
+				fprintf(arqIndices, "%d %d\n", buffer[i].bloco.nonce, blocosLidos);
+			}
+
+			blocosLidos++;
+		}
+	}
+
+	TNo *listaBlocosDisco = NULL;
+	unsigned int nonceLido, numBlocoDisco;
+
+	//Buscando o nonce no arquivo de índices
+	while(!feof(arqIndices)) {
+		fscanf(arqIndices, "%d %d", &nonceLido, &numBlocoDisco);
+
+		//Colocando em uma lista os blocos do arquivo que contém o dado nonce
+		if(nonceLido == nonce)
+			if(!busca(listaBlocosDisco, numBlocoDisco))
+				insereFim(&listaBlocosDisco, numBlocoDisco);
+	}
+
+	//Percorrendo a lista
+	TNo *aux = listaBlocosDisco;
+	while(aux) {
+		//Carregar na memória todos os blocos da blockchain que estão contidos no bloco do disco
+		fseek(arqBlockchain, 4096 * (aux->indice), SEEK_SET);
+		fread(buffer, sizeof(BlocoMinerado), 16, arqBlockchain);
+
+		//Procurar e imprimir, entre os blocos carregados, qual foi minerado por aquele endereço
+		for(i = 0; i < 16; i++)
+			if(buffer[i].bloco.nonce == nonce)
+				printBloco(buffer[i]);
+
+		aux = aux->prox;
+	}
+
+	//Fechando arquivo
+	fclose(arqIndices);
 }
