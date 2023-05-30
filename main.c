@@ -26,6 +26,11 @@ typedef struct TNo {
 	struct TNo *prox;
 } TNo;
 
+typedef struct noBloco {
+	BlocoMinerado bloco;
+	int numTransacoes;
+	struct noBloco *prox;
+} TNoBloco;
 
 // << FUNCOES E PROCEDIMENTOS >>
 void inicializaBloco(BlocoNaoMinerado* bloco, unsigned char hashAnterior[SHA256_DIGEST_LENGTH]);
@@ -41,6 +46,8 @@ void atualizaLista(TNo **lista, unsigned int *carteira);
 void escreveArquivo(FILE *arquivo, BlocoMinerado* dados);
 void converteParaTXT(FILE *arquivo);
 void blocosMineradosEndereco(unsigned int endereco, unsigned int n, FILE *arqBlockchain);
+void insereListaOrdenada(TNoBloco **lista, BlocoMinerado bloco, int numTransacoes);
+void primeirosBlocos(FILE *arqBlockchain, unsigned int n);
 void blocosMineradosNonce(unsigned int nonce, FILE *arqBlockchain);
 
 int main(){
@@ -87,6 +94,14 @@ int main(){
 
 			//mudar numero
 			case 3:
+				unsigned int num;
+				printf("Digite o número de blocos que deseja imprimir: ");
+				scanf("%d", &num);
+				primeirosBlocos(pArquivo, num);
+				break;
+
+			//mudar número
+			case 4:
 				unsigned int nonce;
 				printf("Digite o nonce: ");
 				scanf("%d", &nonce);
@@ -517,6 +532,88 @@ void blocosMineradosEndereco(unsigned int endereco, unsigned int n, FILE *arqBlo
 			}
 		}
 
+		aux = aux->prox;
+	}
+}
+
+//Funcao para inserir em uma lista ordenada
+void insereListaOrdenada(TNoBloco **lista, BlocoMinerado bloco, int numTransacoes) {
+    TNoBloco *aux, *novo = malloc(sizeof(TNoBloco));
+	if(!novo) return;
+	novo->bloco = bloco;
+    novo->numTransacoes = numTransacoes;
+        
+    if(*lista == NULL) {
+        novo->prox = NULL;
+        *lista = novo;
+    }
+    else if(novo->numTransacoes < (*lista)->numTransacoes) {
+        novo->prox = *lista;
+        *lista = novo;
+    }
+    else {
+        aux = *lista;
+        while(aux->prox && novo->numTransacoes > aux->prox->numTransacoes)
+            aux = aux->prox;
+        novo->prox = aux->prox;
+        aux->prox = novo;
+    }
+}
+
+//Funcao que imprime os n primeiros blocos da blockchain
+void primeirosBlocos(FILE *arqBlockchain, unsigned int n) {
+	int i, j;
+	BlocoMinerado buffer[16];
+	TNoBloco *listaBlocos = NULL;
+	int contImpressos = 0; //Conta quantos blocos da blockchain foram imprimidos
+
+	if(!arqBlockchain) {
+		printf("Erro: Voce precisa criar a blockchain primeiro.\n");
+		return;
+	}
+
+	rewind(arqBlockchain);
+	int quantTransacoes = 0;
+
+	fread(buffer, sizeof(BlocoMinerado), 16, arqBlockchain);
+
+	insereListaOrdenada(&listaBlocos, buffer[0], 0); //Genesis
+	contImpressos++;
+
+	for(i = 1; i < 16; i++) {
+		if(contImpressos >= n) break; //Já imprimiu tudo
+		for(j = 0; j < 61; j++) {
+			if((buffer[i].bloco.data[3*j] != 0) || (buffer[i].bloco.data[3*j + 1] != 0) || (buffer[i].bloco.data[3*j + 2] != 0)) {
+				quantTransacoes++;
+			}
+		}
+		insereListaOrdenada(&listaBlocos, buffer[i], quantTransacoes);
+			
+		contImpressos++;
+		quantTransacoes = 0;
+	}
+
+	while(!feof(arqBlockchain) && (contImpressos < n)) {
+		fread(buffer, sizeof(BlocoMinerado), 16, arqBlockchain);
+
+		for(i = 0; i < 16; i++) {
+			if(contImpressos >= n) break; //Já imprimiu tudo
+			for(j = 0; j < 61; j++) {
+				if((buffer[i].bloco.data[3*j] != 0) || (buffer[i].bloco.data[3*j + 1] != 0) || (buffer[i].bloco.data[3*j + 2] != 0)) {
+					quantTransacoes++;
+				}
+			}
+			insereListaOrdenada(&listaBlocos, buffer[i], quantTransacoes);
+			
+			contImpressos++;
+			quantTransacoes = 0;
+		}
+	}
+
+	TNoBloco *aux = listaBlocos;
+	while(aux) {
+		//printf("Quantidade de transações: %d\n", aux->numTransacoes);
+		printBloco(aux->bloco);
 		aux = aux->prox;
 	}
 }
